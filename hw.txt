@@ -1,0 +1,90 @@
+
+<!-- https://github.com/hovanduc2008/aio_page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hello World Illusion</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: black;
+      font-family: Arial, sans-serif;
+      position: relative;
+      animation: backgroundFlash 0.5s infinite alternate;
+    }
+
+    @keyframes backgroundFlash {
+      0% { background-color: #000; }
+      100% { background-color: #330033; }
+    }
+
+    .hello {
+      position: absolute;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      animation: spinScale 1s infinite ease-in-out;
+      user-select: none;
+    }
+
+    @keyframes spinScale {
+      0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.5) rotate(180deg);
+        opacity: 0.7;
+      }
+      100% {
+        transform: scale(1) rotate(360deg);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<script>
+  let rate = 1;
+  let interval = 300;
+
+  function randomColor() {
+    const r = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+    const g = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+    const b = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
+  }
+
+  function createHelloWorld() {
+    for (let i = 0; i < rate; i++) {
+      const hello = document.createElement('div');
+      hello.classList.add('hello');
+      hello.textContent = 'Hello World';
+
+      const x = Math.random() * window.innerWidth;
+      const y = Math.random() * window.innerHeight;
+      const color = randomColor();
+
+      hello.style.left = `${x}px`;
+      hello.style.top = `${y}px`;
+      hello.style.color = color;
+      hello.style.fontSize = `${12 + Math.random() * 30}px`;
+      hello.style.transform = `rotate(${Math.random() * 360}deg)`;
+
+      document.body.appendChild(hello);
+    }
+
+    rate += 1;
+    interval *= 0.95;
+
+    setTimeout(createHelloWorld, interval);
+  }
+
+  createHelloWorld();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mô phỏng thuật toán đồ thị</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Mô phỏng thuật toán đồ thị</h1>
+  </header>
+
+  <main id="main-container">
+    <section id="input-section">
+      <h3>Nhập dữ liệu đồ thị</h3>
+
+      <div id="input-options">
+        <label>
+          <input type="radio" name="inputMethod" id="manualInput" checked> Nhập tay từ bàn phím
+        </label>
+        <br>
+        <label>
+          <input type="radio" name="inputMethod" id="fileInput"> Nhập từ file
+        </label>
+      </div>
+
+      <div id="manual-input-section">
+        <textarea id="graphData" placeholder="Nhập cạnh theo định dạng: A B 3
+                          B C 4
+                          C A 5"></textarea>
+      </div>
+
+      <div id="file-input-section" style="display: none;">
+        <input type="file" id="graphFile" accept=".txt,.csv,.xlsx" style="display: none;">
+        <button id="uploadFileButton">Tải file lên</button>
+        <p id="fileName" style="margin-top: 0.5rem; color: #666;">Chưa có file nào được chọn</p>
+        <p>Định dạng file: from,to,weight (mỗi dòng một cạnh, ví dụ: A,B,3)</p>
+        <p style="color: #2196F3; font-weight: bold;">Sau khi tải file, kiểm tra "Có hướng" và "Đa đồ thị" trước khi nhấn "Vẽ Đồ Thị".</p>
+      </div>
+
+      <h3>Cấu hình loại đồ thị</h3>
+      <label>
+        <input type="checkbox" id="isDirected"> Có hướng
+      </label><br>
+      <label>
+        <input type="checkbox" id="isMultigraph"> Đa đồ thị
+      </label>
+
+      <button id="drawGraphButton">Vẽ Đồ Thị</button>
+      <button id="clearGraphButton">Xóa Đồ Thị</button>
+
+      <h2>Cấu hình thuật toán</h2>
+      <label for="algorithm">Thuật toán:</label>
+      <select id="algorithm">
+        <option value="dfs">DFS (từ điểm đầu)</option>
+        <option value="bfs">BFS (từ điểm đầu)</option>
+        <option value="dfsGeneral">DFS (toàn đồ thị)</option>
+        <option value="bfsGeneral">BFS (toàn đồ thị)</option>
+        <option value="dijkstra">Dijkstra</option>
+        <option value="kruskal">Kruskal</option>
+        <option value="prim">Prim</option>
+        <option value="bellmanFord">Bellman-Ford</option>
+        <option value="floyd">Floyd-Warshall</option>
+      </select>
+      <br><br>
+      <label for="startNode">Điểm đầu:</label>
+      <input type="text" id="startNode" placeholder="Nhập điểm đầu">
+      <br>
+      <label for="endNode">Điểm cuối:</label>
+      <input type="text" id="endNode" placeholder="Nhập điểm cuối">
+      <button id="run">Chạy Thuật Toán</button>
+
+      <h2>Điều khiển mô phỏng</h2>
+      <div id="simulation-controls">
+        <button id="play-btn" class="control-btn" title="Phát">▶</button>
+        <button id="pause-btn" class="control-btn" title="Tạm dừng" disabled>⏸</button>
+        <button id="step-btn" class="control-btn" title="Bước tiếp theo">⏩</button>
+        <button id="reset-btn" class="control-btn" title="Đặt lại">⟲</button>
+        <div class="speed-control">
+          <label for="speed-slider">Tốc độ:</label>
+          <input type="range" id="speed-slider" min="1" max="10" value="5">
+        </div>
+      </div>
+
+      <h2>Kết quả</h2>
+      <label for="result">Kết quả:</label>
+      <textarea id="result" rows="10" cols="50" readonly></textarea>
+
+      <br>
+      <label for="graphInfo">Thông tin đồ thị:</label>
+      <div id="graphInfo" style="border:1px solid #ccc; padding:10px; background:#f0f0f0; margin-top:5px;">
+        Chưa có dữ liệu.
+      </div>
+      <div id="graphType" style="border:1px solid #ccc; padding:10px; background:#f0f0f0; margin-top:5px;">
+        Loại đồ thị: Chưa xác định
+      </div>
+    </section>
+
+    <section id="output-section">
+      <h2>Kết quả mô phỏng</h2>
+      <canvas id="graphCanvas"></canvas>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

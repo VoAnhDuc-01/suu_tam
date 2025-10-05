@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dự đoán khí hậu</title>
+    <style>
+        /* Tổng quan */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #ffffff;
+            background: linear-gradient(135deg, #1e90ff, #87cefa);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1, h2, h3 {
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        form {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            width: 80%;
+            max-width: 600px;
+        }
+
+        label {
+            font-size: 1.1em;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-top: 5px;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #32cd32;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #228b22;
+        }
+
+        #result {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        ul {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            list-style: none;
+            line-height: 1.8;
+        }
+
+        ul li {
+            padding: 5px 0;
+        }
+
+        p {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1em;
+        }
+
+        strong {
+            color: #f0e68c;
+        }
+
+        canvas {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Dự đoán khí hậu</h1>
+    <form>
+        <label for="currentTemp">Nhiệt độ hiện tại (°C):</label>
+        <input type="number" id="currentTemp" step="0.1" value="15" placeholder="Ví dụ: 15" required><br><br>
+
+        <label for="initialCO2">Nồng độ CO₂ hiện tại (ppm):</label>
+        <input type="number" id="initialCO2" step="1" value="420" placeholder="Ví dụ: 420" required><br><br><label for="years">Số năm từ hiện tại đến tương lai:</label><input type="number" id="years" step="1" value="50" placeholder="Ví dụ: 50" required><br><br>
+
+        <label for="k">Hằng số nhạy cảm khí hậu (k):</label>
+        <input type="number" id="k" step="0.1" value="1.5" placeholder="Ví dụ: 1.5" required><br><br>
+
+        <label for="initialHotDays">Số ngày nắng nóng ban đầu (N₀):</label>
+        <input type="number" id="initialHotDays" step="1" value="30" placeholder="Ví dụ: 30" required><br><br>
+
+        <label for="deltaN">Tốc độ thay đổi ngày nắng nóng (ΔN):</label>
+        <input type="number" id="deltaN" step="0.1" value="5" placeholder="Ví dụ: 5" required><br><br>
+
+        <label for="initialHumidity">Độ ẩm ban đầu (H₀):</label>
+        <input type="number" id="initialHumidity" step="0.1" value="50" placeholder="Ví dụ: 50" required><br><br>
+
+        <label for="deltaH">Tốc độ thay đổi độ ẩm (ΔH):</label>
+        <input type="number" id="deltaH" step="0.1" value="-0.5" placeholder="Ví dụ: -0.5" required><br><br>
+
+        <button type="button" onclick="calculateClimate()">Dự đoán</button>
+    </form>
+
+    <h2>Kết quả:</h2>
+    <p id="result">Kết quả dự đoán sẽ hiển thị ở đây.</p>
+
+    <h3>Gợi ý ΔN theo miền:</h3>
+    <ul>
+        <li>Miền Bắc: ΔN = 1.75</li>
+        <li>Miền Trung: ΔN = 2</li>
+        <li>Miền Nam: ΔN = 1.5</li>
+    </ul>
+    <h3>Gợi ý ΔH theo miền:</h3>
+    <ul>
+        <li>Miền Bắc: ΔH = 1.5</li>
+        <li>Miền Trung: ΔH = 2</li>
+        <li>Miền Nam: ΔH = 1.5</li>
+    </ul>
+
+    <p><strong>Lưu ý:</strong> Kết quả chỉ mang tính tương đối, những giá trị này chỉ có tính chính xác trong khoảng 1 đến 30 năm, càng về sau tính chính xác càng giảm dần.</p>
+    <p></strong> Những số liệu ban đầu nên được lấy từ những trang web về khí hậu hoặc dự báo thời tiết để có tính chính xác cao nhất.</p>
+
+    <canvas id="myChart"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let chart;
+
+        function calculateClimate() {
+            let T0 = parseFloat(document.getElementById('currentTemp').value);
+            let C0 = parseFloat(document.getElementById('initialCO2').value);
+            let years = parseInt(document.getElementById('years').value);
+            let k = parseFloat(document.getElementById('k').value);
+
+            let N0 = parseFloat(document.getElementById('initialHotDays').value);
+            let deltaN = parseFloat(document.getElementById('deltaN').value);
+
+            let H0 = parseFloat(document.getElementById('initialHumidity').value);
+            let deltaH = parseFloat(document.getElementById('deltaH').value);
+
+            if (isNaN(T0) || isNaN(C0) || isNaN(years) || isNaN(k) || 
+                isNaN(N0) || isNaN(deltaN) || isNaN(H0) || isNaN(deltaH) || 
+                C0 <= 0 || years <= 0 || k <= 0) {document.getElementById('result').innerText = 'Vui lòng nhập đầy đủ và hợp lệ các giá trị.';
+                return;
+            }let Cf = C0 + 2.5 * years;
+            let deltaT = k * Math.log(Cf / C0);
+            let Tf = T0 + deltaT;
+
+            let N = N0 + deltaN * years;
+            let H = H0 + deltaH * years;
+
+            document.getElementById('result').innerText = Nồng độ CO₂ tương lai: ${Cf.toFixed(2)} ppm\n +
+                                                          Nhiệt độ dự đoán tăng: ${deltaT.toFixed(2)} °C\n +
+                                                          Nhiệt độ tương lai: ${Tf.toFixed(2)} °C\n +
+                                                          Số ngày nắng nóng tương lai: ${N.toFixed(2)} ngày\n +
+                                                          Độ ẩm tương lai: ${H.toFixed(2)}%;
+
+            // Tạo đồ thị sau khi tính toán
+            createGraph(years, Cf, Tf, N, H);
+        }
+
+        function createGraph(years, Cf, Tf, N, H) {
+            let labels = [];
+            let co2Data = [];
+            let tempData = [];
+            let hotDaysData = [];
+            let humidityData = [];
+
+            for (let year = 0; year <= years; year++) {
+                labels.push(year);
+                co2Data.push(Cf);
+                tempData.push(Tf);
+                hotDaysData.push(N);
+                humidityData.push(H);
+
+                Cf += 2.5;
+                Tf += 1.5;
+                N += 5;
+                H += -0.5;
+            }
+
+            // Tạo đồ thị mới
+            const ctx = document.getElementById('myChart').getContext('2d');
+            if (chart) {
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = co2Data;
+                chart.data.datasets[1].data = tempData;
+                chart.data.datasets[2].data = hotDaysData;
+                chart.data.datasets[3].data = humidityData;
+                chart.update();
+            } else {
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Nồng độ CO₂ (ppm)',
+                            data: co2Data,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            fill: false,
+                        }, {
+                            label: 'Nhiệt độ (°C)',
+                            data: tempData,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            fill: false,
+                        }, {
+                            label: 'Ngày nắng nóng',
+                            data: hotDaysData,
+                            borderColor: 'rgba(255, 159, 64, 1)',
+                            fill: false,
+                        }, {
+                            label: 'Độ ẩm (%)',data: humidityData,
+                            borderColor: 'rgba(75, 192, 192, 1)',fill: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(tooltipItem) {
+                                        return tooltipItem.dataset.label + ': ' + tooltipItem.raw.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
