@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy HTML Tag</title>
+    <style>
+        body { margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; background: #1a1a1a; font-family: 'Courier New', Courier, monospace; }
+        canvas { border: 4px solid #333; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.7); background: #70c5ce; }
+    </style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 360;
+canvas.height = 600;
+
+let bird, pipes, score, frame, gameOver, gameStarted = false;
+const gravity = 0.25;
+const jump = -4.8;
+
+// Tải ảnh chú chim pixel từ URL (giống trong ảnh bạn gửi)
+const birdImg = new Image();
+birdImg.src = 'https://preview.redd.it/walter-kaguya-v0-ol13bo9i64oc1.jpg?width=640&crop=smart&auto=webp&s=72d15ec3759cdf702b69b7714be6eed41b2c64a4'; // Ảnh chim vàng pixel
+
+function init() {
+    bird = { x: 160, y: canvas.height / 2, w: 50, h: 50, v: 0, rotation: 0 };
+    pipes = [];
+    score = 0;
+    frame = 0;
+    gameOver = false;
+}
+
+function action() {
+    if (gameOver) { init(); } 
+    else if (!gameStarted) { gameStarted = true; }
+    bird.v = jump;
+}
+
+window.addEventListener("keydown", (e) => { if(e.code === "Space") action() });
+canvas.addEventListener("mousedown", action);
+
+function update() {
+    if (!gameStarted || gameOver) return;
+    bird.v += gravity;
+    bird.y += bird.v;
+    bird.rotation = Math.min(Math.PI / 6, Math.max(-Math.PI / 10, bird.v / 15));
+
+    if (frame % 100 === 0) {
+        const gap = 160;
+        const pipeHeight = Math.random() * (canvas.height - gap - 200) + 100;
+        pipes.push({ x: canvas.width, top: pipeHeight, bottom: pipeHeight + gap, passed: false });
+    }
+
+    for (let i = pipes.length - 1; i >= 0; i--) {
+        pipes[i].x -= 2.2;
+        // Kiểm tra va chạm (thu hẹp hitbox một chút để công bằng hơn)
+        if (bird.x + 10 < pipes[i].x + 50 && bird.x + bird.w - 10 > pipes[i].x) {
+            if (bird.y + 15 < pipes[i].top || bird.y + bird.h - 15 > pipes[i].bottom) {
+                gameOver = true;
+            }
+        }
+        if (!pipes[i].passed && pipes[i].x < bird.x) {
+            score++;
+            pipes[i].passed = true;
+        }
+        if (pipes[i].x < -60) pipes.splice(i, 1);
+    }
+    if (bird.y + bird.h > canvas.height || bird.y < -50) gameOver = true;
+    frame++;
+}
+
+function draw() {
+    // Nền trời
+    ctx.fillStyle = "#70c5ce";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Vẽ ống
+    pipes.forEach(p => {
+        ctx.fillStyle = "#2ecc71";
+        ctx.fillRect(p.x, 0, 55, p.top);
+        ctx.fillRect(p.x, p.bottom, 55, canvas.height - p.bottom);
+        // Viền ống
+        ctx.strokeStyle = "#1b5e20";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(p.x, 0, 55, p.top);
+        ctx.strokeRect(p.x, p.bottom, 55, canvas.height - p.bottom);
+    });
+
+    // --- VẼ PHẦN CODE TAG & CHIM ---
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    ctx.rotate(bird.rotation);
+
+    // Vẽ đoạn code giả lập (Flappy Tag)
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.font = "11px 'Courier New'";
+    const codeLines = [
+        "< img",
+        "src='https://bird'",
+        "alt='Yellow Bird'",
+        "class='w-full h-full'",
+        "object-contain' >"
+    ];
+    
+    codeLines.forEach((line, index) => {
+        // Tạo hiệu ứng đổ bóng cho chữ dễ đọc
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillText(line, -59, index * 12 - 5);
+        ctx.fillStyle = "#fff";
+        ctx.fillText(line, -60, index * 12 - 6);
+    });
+
+    // Vẽ chú chim vào giữa đoạn code
+    if (birdImg.complete) {
+        ctx.drawImage(birdImg, 0, 0, bird.w, bird.h);
+    } else {
+        // Nếu ảnh chưa tải xong thì vẽ tạm hình vuông vàng
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(0,0, bird.w, bird.h);
+    }
+    
+    ctx.restore();
+
+    // Điểm số
+    ctx.fillStyle = "white";
+    ctx.font = "bold 45px Arial";
+    ctx.textAlign = "center";
+    ctx.shadowColor = "black";
+    ctx.shadowBlur = 5;
+    ctx.fillText(score, canvas.width / 2, 80);
+    ctx.shadowBlur = 0;
+
+    if (!gameStarted) {
+        ctx.fillStyle = "white";
+        ctx.font = "18px Arial";
+        ctx.fillText("NHẤN ĐỂ BẮT ĐẦU CODE", canvas.width / 2, canvas.height / 2 + 100);
+    }
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "#ff5252";
+        ctx.font = "bold 30px Arial";
+        ctx.fillText("GÀ", canvas.width / 2, canvas.height / 2);
+        ctx.fillStyle = "white";
+        ctx.font = "16px Arial";
+        ctx.fillText("Nhấn để chơi lại", canvas.width / 2, canvas.height / 2 + 40);
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+init();
+loop();
+</script>
+</body>
+</html>

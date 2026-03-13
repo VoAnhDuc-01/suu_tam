@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Pro</title>
+    <style>
+        body { margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; background: #222; font-family: Arial, sans-serif; }
+        canvas { border: 4px solid #fff; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: #70c5ce; max-width: 100%; max-height: 100%; }
+    </style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// Thiết lập kích thước canvas
+canvas.width = 360;
+canvas.height = 600;
+
+// Biến khởi tạo
+let bird, pipes, score, frame, gameOver, gameStarted = false;
+const gravity = 0.25;
+const jump = -4.6;
+
+function init() {
+    bird = { x: 50, y: canvas.height / 2, w: 34, h: 24, v: 0, rotation: 0 };
+    pipes = [];
+    score = 0;
+    frame = 0;
+    gameOver = false;
+}
+
+// Âm thanh giả lập bằng Web Audio API
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(freq, type, duration) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+}
+
+// Xử lý sự kiện điều khiển
+function action() {
+    if (gameOver) {
+        init();
+    } else if (!gameStarted) {
+        gameStarted = true;
+    }
+    bird.v = jump;
+    playSound(400, 'sine', 0.1);
+}
+
+window.addEventListener("keydown", (e) => { if(e.code === "Space") action() });
+canvas.addEventListener("mousedown", action);
+canvas.addEventListener("touchstart", (e) => { e.preventDefault(); action(); });
+
+function update() {
+    if (!gameStarted || gameOver) return;
+
+    bird.v += gravity;
+    bird.y += bird.v;
+    bird.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, (bird.v / 10)));
+
+    // Tạo ống
+    if (frame % 90 === 0) {
+        const gap = 150;
+        const minPipeHeight = 50;
+        const pipeHeight = Math.random() * (canvas.height - gap - minPipeHeight * 2) + minPipeHeight;
+        pipes.push({ x: canvas.width, top: pipeHeight, bottom: pipeHeight + gap, passed: false });
+    }
+
+    // Cập nhật ống
+    for (let i = pipes.length - 1; i >= 0; i--) {
+        pipes[i].x -= 2.5;
+
+        // Kiểm tra va chạm
+        if (bird.x + bird.w > pipes[i].x && bird.x < pipes[i].x + 50) {
+            if (bird.y < pipes[i].top || bird.y + bird.h > pipes[i].bottom) {
+                endGame();
+            }
+        }
+
+        // Tính điểm
+        if (!pipes[i].passed && pipes[i].x < bird.x) {
+            score++;
+            pipes[i].passed = true;
+            playSound(600, 'square', 0.1);
+        }
+
+        if (pipes[i].x < -50) pipes.splice(i, 1);
+    }
+
+    if (bird.y + bird.h > canvas.height || bird.y < 0) endGame();
+    frame++;
+}
+
+function endGame() {
+    gameOver = true;
+    playSound(150, 'sawtooth', 0.3);
+}
+
+function draw() {
+    // Vẽ nền
+    ctx.fillStyle = "#70c5ce";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Vẽ mây (trang trí)
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.beginPath();
+    ctx.arc(100, 100, 30, 0, Math.PI*2);
+    ctx.arc(130, 100, 40, 0, Math.PI*2);
+    ctx.arc(160, 100, 30, 0, Math.PI*2);
+    ctx.fill();
+
+    // Vẽ ống
+    pipes.forEach(p => {
+        const grad = ctx.createLinearGradient(p.x, 0, p.x + 50, 0);
+        grad.addColorStop(0, "#2ecc71");
+        grad.addColorStop(1, "#27ae60");
+        ctx.fillStyle = grad;
+        
+        ctx.fillRect(p.x, 0, 50, p.top); // Trên
+        ctx.fillRect(p.x, p.bottom, 50, canvas.height - p.bottom); // Dưới
+    });
+
+    // Vẽ chim
+    ctx.save();
+    ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
+    ctx.rotate(bird.rotation);
+    ctx.fillStyle = "#f1c40f";
+    ctx.fillRect(-bird.w/2, -bird.h/2, bird.w, bird.h);
+    ctx.fillStyle = "white"; // Mắt
+    ctx.fillRect(5, -8, 8, 8);
+    ctx.fillStyle = "#e67e22"; // Mỏ
+    ctx.fillRect(10, 2, 10, 6);
+    ctx.restore();
+
+    // Vẽ điểm
+    ctx.fillStyle = "white";
+    ctx.strokeStyle = "black";
+    ctx.font = "bold 40px Arial";
+    ctx.lineWidth = 2;
+    ctx.textAlign = "center";
+    ctx.fillText(score, canvas.width / 2, 80);
+    ctx.strokeText(score, canvas.width / 2, 80);
+
+    if (!gameStarted) {
+        ctx.font = "20px Arial";
+        ctx.fillText("NHẤN ĐỂ CHƠI", canvas.width / 2, canvas.height / 2);
+    }
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.fillText("THUA RỒI!", canvas.width / 2, canvas.height / 2);
+        ctx.font = "16px Arial";
+        ctx.fillText("Nhấn để thử lại", canvas.width / 2, canvas.height / 2 + 40);
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+init();
+loop();
+</script>
+</body>
+</html>
