@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Phương trình Khí lí tưởng</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f8fafc;
+            --panel-bg: #ffffff;
+            --text-color: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .widget-container {
+            background: var(--panel-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .widget-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Thống số bên trái */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .equation {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 30px;
+            font-style: italic;
+            font-family: 'Times New Roman', Times, serif;
+            color: #0f172a;
+        }
+
+        .equation font {
+            font-weight: bold;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            background: #f1f5f9;
+            padding: 12px 16px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .control-group.fixed {
+            background: #e2e8f0;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .param-label {
+            width: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        .param-value {
+            width: 70px;
+            font-size: 1rem;
+            text-align: right;
+            margin-right: 15px;
+            font-weight: 600;
+        }
+
+        .slider-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        input[type="range"]:disabled {
+            cursor: not-allowed;
+            accent-color: #94a3b8;
+        }
+
+        .radio-select {
+            margin-left: 15px;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+        }
+
+        .note {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* Mô phỏng bên phải */
+        .simulation-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+
+<div class="widget-container">
+    <div class="control-panel">
+    
+        <div class="equation">Chúng ta là Phạm Nhật Vượng</div>
+        <div class="equation">pV = nRT</div>
+       
+        
+        <div class="control-group" id="group-P">
+            <span class="param-label">p</span>
+            <span class="param-value" id="val-P">4.09</span>
+            <div class="slider-wrapper">
+                <input type="range" id="slide-P" min="1" max="15" step="0.01" value="4.09">
+            </div>
+            <input type="radio" name="fixed-param" class="radio-select" value="P" checked title="Tính đại lượng này">
+        </div>
+
+        <div class="control-group" id="group-V">
+            <span class="param-label">V</span>
+            <span class="param-value" id="val-V">28.0</span>
+            <div class="slider-wrapper">
+                <input type="range" id="slide-V" min="10" max="50" step="0.1" value="28.0">
+            </div>
+            <input type="radio" name="fixed-param" class="radio-select" value="V" title="Tính đại lượng này">
+        </div>
+
+        <div class="control-group" id="group-n">
+            <span class="param-label">n</span>
+            <span class="param-value" id="val-n">3.30</span>
+            <div class="slider-wrapper">
+                <input type="range" id="slide-n" min="1" max="10" step="0.1" value="3.30">
+            </div>
+            <input type="radio" name="fixed-param" class="radio-select" value="n" title="Tính đại lượng này">
+        </div>
+
+        <div class="control-group" id="group-T">
+            <span class="param-label">T</span>
+            <span class="param-value" id="val-T">418.0</span>
+            <div class="slider-wrapper">
+                <input type="range" id="slide-T" min="200" max="600" step="1" value="418.0">
+            </div>
+            <input type="radio" name="fixed-param" class="radio-select" value="T" title="Tính đại lượng này">
+        </div>
+
+        <div class="note">Tích cái nào đẳng cái đó </div>
+    </div>
+
+    <div class="simulation-panel">
+        <canvas id="simCanvas" width="350" height="400"></canvas>
+    </div>
+</div>
+
+<script>
+    // Khởi tạo các phần tử DOM
+    const sliders = {
+        P: document.getElementById('slide-P'),
+        V: document.getElementById('slide-V'),
+        n: document.getElementById('slide-n'),
+        T: document.getElementById('slide-T')
+    };
+    const values = {
+        P: document.getElementById('val-P'),
+        V: document.getElementById('val-V'),
+        n: document.getElementById('val-n'),
+        T: document.getElementById('val-T')
+    };
+    const groups = {
+        P: document.getElementById('group-P'),
+        V: document.getElementById('group-V'),
+        n: document.getElementById('group-n'),
+        T: document.getElementById('group-T')
+    };
+    
+    const R = 8.31; // Hằng số khí lí tưởng
+    let targetParam = 'P'; // Đại lượng sẽ tự động tính toán bằng phương trình
+
+    // Cập nhật trạng thái kích hoạt/vô hiệu hóa slider dựa vào Radio được chọn
+    function updateRadioState() {
+        targetParam = document.querySelector('input[name="fixed-param"]:checked').value;
+        
+        Object.keys(sliders).forEach(key => {
+            if (key === targetParam) {
+                sliders[key].disabled = true;
+                groups[key].classList.add('fixed');
+            } else {
+                sliders[key].disabled = false;
+                groups[key].classList.remove('fixed');
+            }
+        });
+        calculate();
+    }
+
+    // Tính toán giá trị dựa theo phương trình pV = nRT
+    function calculate() {
+        let p = parseFloat(sliders.P.value);
+        let v = parseFloat(sliders.V.value);
+        let n = parseFloat(sliders.n.value);
+        let t = parseFloat(sliders.T.value);
+
+        if (targetParam === 'P') {
+            p = (n * R * t) / v;
+            sliders.P.value = p.toFixed(2);
+        } else if (targetParam === 'V') {
+            v = (n * R * t) / p;
+            sliders.V.value = v.toFixed(1);
+        } else if (targetParam === 'n') {
+            n = (p * v) / (R * t);
+            sliders.n.value = n.toFixed(2);
+        } else if (targetParam === 'T') {
+            t = (p * v) / (n * R);
+            sliders.T.value = t.toFixed(0);
+        }
+
+        // Hiển thị text số liệu ra màn hình
+        values.P.innerText = parseFloat(sliders.P.value).toFixed(2);
+        values.V.innerText = parseFloat(sliders.V.value).toFixed(1);
+        values.n.innerText = parseFloat(sliders.n.value).toFixed(2);
+        values.T.innerText = parseFloat(sliders.T.value).toFixed(0);
+
+        // Cập nhật lại số lượng hạt tương ứng với n
+        adjustParticleCount(Math.round(n * 15)); 
+    }
+
+    // Lắng nghe sự kiện thay đổi dữ liệu
+    document.querySelectorAll('input[name="fixed-param"]').forEach(radio => {
+        radio.addEventListener('change', updateRadioState);
+    });
+
+    Object.keys(sliders).forEach(key => {
+        sliders[key].addEventListener('input', calculate);
+    });
+
+
+    // --- PHẦN ĐỒ HỌA MÔ PHỎNG (CANVAS) ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let particles = [];
+
+    class Particle {
+        constructor(x, y, pistonY) {
+            this.x = x;
+            this.y = y;
+            // Tốc độ hạt phụ thuộc căn bậc hai của Nhiệt độ T (Động năng phân tử)
+            const T = parseFloat(sliders.T.value);
+            const speedMultiplier = Math.sqrt(T) * 0.15;
+            
+            const angle = Math.random() * Math.PI * 2;
+            this.vx = Math.cos(angle) * speedMultiplier;
+            this.vy = Math.sin(angle) * speedMultiplier;
+            this.radius = 5;
+        }
+
+        update(pistonY, speedMultiplier) {
+            // Chuẩn hóa vận tốc theo nhiệt độ thực tế liên tục
+            const angle = Math.atan2(this.vy, this.vx);
+            this.vx = Math.cos(angle) * speedMultiplier;
+            this.vy = Math.sin(angle) * speedMultiplier;
+
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // Va chạm thành xilanh bên trái/phải
+            if (this.x - this.radius < 75) {
+                this.x = 75 + this.radius;
+                this.vx *= -1;
+            }
+            if (this.x + this.radius > 275) {
+                this.x = 275 - this.radius;
+                this.vx *= -1;
+            }
+            // Va chạm đáy xilanh
+            if (this.y + this.radius > 350) {
+                this.y = 350 - this.radius;
+                this.vy *= -1;
+            }
+            // Va chạm nắp Piston di động
+            if (this.y - this.radius < pistonY) {
+                this.y = pistonY + this.radius;
+                this.vy *= -1;
+            }
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#3b82f6';
+            ctx.fill();
+            ctx.closePath();
+        }
+    }
+
+    // Điều chỉnh tăng giảm số hạt mượt mà
+    function adjustParticleCount(targetCount) {
+        const currentV = parseFloat(sliders.V.value);
+        // Chiều cao piston tỷ lệ nghịch với thể tích V
+        const pistonY = 350 - (currentV * 5); 
+
+        while (particles.length < targetCount) {
+            const x = 75 + Math.random() * 200;
+            const y = pistonY + 10 + Math.random() * (340 - pistonY - 10);
+            particles.push(new Particle(x, y, pistonY));
+        }
+        while (particles.length > targetCount) {
+            particles.pop();
+        }
+    }
+
+    // Vòng lặp vẽ đồ họa hoạt cảnh liên tục
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const currentV = parseFloat(sliders.V.value);
+        const currentT = parseFloat(sliders.T.value);
+        
+        // Tính toán vị trí Piston dựa trên thể tích V (thể tích càng lớn piston càng cao)
+        const pistonY = 350 - (currentV * 5); 
+        const speedMultiplier = Math.sqrt(currentT) * 0.15; // Tốc độ hạt theo T
+
+        // 1. Vẽ thành Xilanh (màu xám nhạt)
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(72, 80);
+        ctx.lineTo(72, 353);
+        ctx.lineTo(278, 353);
+        ctx.lineTo(278, 80);
+        ctx.stroke();
+
+        // 2. Cập nhật và vẽ các phân tử khí bên trong
+        particles.forEach(p => {
+            p.update(pistonY, speedMultiplier);
+            p.draw();
+        });
+
+        // 3. Vẽ đĩa Piston chặn khí (Màu xám đậm)
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.roundRect(75, pistonY - 15, 200, 20, 4);
+        ctx.fill();
+
+        // Vẽ tay cầm Piston kéo dài lên trên
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(165, pistonY - 70, 20, 55);
+
+        requestAnimationFrame(animate);
+    }
+
+    // Khởi chạy ứng dụng ban đầu
+    updateRadioState();
+    animate();
+</script>
+
+</body>
+</html>
