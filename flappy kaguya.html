@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy HTML Tag - Boss Mokou Edition</title>
+    <style>
+        body { margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; background: #1a1a1a; font-family: 'Courier New', Courier, monospace; }
+        canvas { border: 4px solid #333; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.7); background: #70c5ce; }
+    </style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 600;
+canvas.height = 500;
+
+let bird, pipes, fireballs, score, frame, gameOver, gameStarted = false;
+let boss;
+
+const gravity = 0.25;
+const jump = -4.8;
+const pipeWidth = 30; 
+
+const birdImg = new Image();
+birdImg.src = 'https://preview.redd.it/walter-kaguya-v0-ol13bo9i64oc1.jpg?width=640&crop=smart&auto=webp&s=72d15ec3759cdf702b69b7714be6eed41b2c64a4';
+
+const bossImg = new Image();
+bossImg.src = 'https://files.catbox.moe/1vchw7.png';
+
+function init() {
+    bird = { x: 160, y: canvas.height / 2, w: 50, h: 50, v: 0, rotation: 0 };
+    pipes = [];
+    fireballs = [];
+    score = 0;
+    frame = 0;
+    gameOver = false;
+    boss = { 
+        active: false, 
+        x: canvas.width + 100, 
+        y: 150, 
+        w: 115, 
+        h: 115, 
+        pipeX: canvas.width + 100, 
+        pipeTop: 250, 
+        shootTimer: 0 
+    };
+}
+
+function action() {
+    if (gameOver) { init(); } 
+    else if (!gameStarted) { gameStarted = true; }
+    bird.v = jump;
+}
+
+window.addEventListener("keydown", (e) => { if(e.code === "Space") action() });
+canvas.addEventListener("mousedown", action);
+
+function update() {
+    if (!gameStarted || gameOver) return;
+    bird.v += gravity;
+    bird.y += bird.v;
+    bird.rotation = Math.min(Math.PI / 6, Math.max(-Math.PI / 10, bird.v / 15));
+
+    const BOSS_TRIGGER_SCORE = 3;
+
+    if (score >= BOSS_TRIGGER_SCORE && !boss.active) {
+        boss.active = true;
+        pipes = []; 
+    }
+
+    if (!boss.active) {
+        if (frame % 100 === 0) {
+            const gap = 160;
+            const pipeHeight = Math.random() * (canvas.height - gap - 200) + 100;
+            const leafSeed = Math.random(); 
+            pipes.push({ x: canvas.width, top: pipeHeight, bottom: pipeHeight + gap, passed: false, seed: leafSeed });
+        }
+
+        for (let i = pipes.length - 1; i >= 0; i--) {
+            pipes[i].x -= 2.2;
+            
+            if (bird.x + 10 < pipes[i].x + pipeWidth && bird.x + bird.w - 10 > pipes[i].x) {
+                if (bird.y + 15 < pipes[i].top || bird.y + bird.h - 15 > pipes[i].bottom) {
+                    gameOver = true;
+                }
+            }
+            if (!pipes[i].passed && pipes[i].x < bird.x) {
+                score++;
+                pipes[i].passed = true;
+            }
+            if (pipes[i].x < -60) pipes.splice(i, 1);
+        }
+    } else {
+        if (boss.pipeX > 460) {
+            boss.pipeX -= 2.0; 
+        }
+        boss.x = boss.pipeX - 52; 
+        boss.y = boss.pipeTop - boss.h + 10; 
+
+        boss.shootTimer++;
+        if (boss.shootTimer % 60 === 0) { 
+            let startX = boss.x + 10;
+            let startY = boss.y + boss.h * 0.45; 
+            
+            let targetX = bird.x + bird.w / 2;
+            let targetY = bird.y + bird.h / 2;
+            
+            let diffX = targetX - startX;
+            let diffY = targetY - startY;
+            let distance = Math.sqrt(diffX * diffX + diffY * diffY);
+            
+            let speed = 4.5;
+            let vx = (diffX / distance) * speed;
+            let vy = (diffY / distance) * speed;
+
+            fireballs.push({
+                x: startX,
+                y: startY,
+                r: 14,
+                vx: vx, 
+                vy: vy  
+            });
+        }
+    }
+
+    for (let i = fireballs.length - 1; i >= 0; i--) {
+        fireballs[i].x += fireballs[i].vx;
+        fireballs[i].y += fireballs[i].vy;
+
+        let distX = Math.abs(fireballs[i].x - (bird.x + bird.w / 2));
+        let distY = Math.abs(fireballs[i].y - (bird.y + bird.h / 2));
+
+        if (distX < (bird.w / 2 - 3) && distY < (bird.h / 2 - 3)) {
+            gameOver = true; 
+        }
+
+        if (fireballs[i].x < -50 || fireballs[i].x > canvas.width + 50 || 
+            fireballs[i].y < -50 || fireballs[i].y > canvas.height + 50) {
+            fireballs.splice(i, 1);
+        }
+    }
+
+    if (bird.y + bird.h > canvas.height || bird.y < -50) gameOver = true;
+    frame++;
+}
+
+function drawBambooLeaves(x, y, isLeft, segmentIndex, pipeSeed) {
+    ctx.save();
+    ctx.fillStyle = "#2ecc71";
+    ctx.strokeStyle = "#1e6b39";
+    ctx.lineWidth = 1;
+
+    let pseudoRandom = Math.sin(segmentIndex * 12.9898 + pipeSeed * 78.233) * 43758.5453;
+    pseudoRandom = pseudoRandom - Math.floor(pseudoRandom);
+
+    let dir = isLeft ? -1 : 1;
+    let leafCount = Math.floor(pseudoRandom * 3) + 1; 
+
+    ctx.beginPath();
+    ctx.strokeStyle = "#1e6b39";
+    ctx.lineWidth = 1.5;
+    ctx.moveTo(x, y);
+    let branchX = x + 6 * dir;
+    let branchY = y - (pseudoRandom * 4);
+    ctx.lineTo(branchX, branchY);
+    ctx.stroke();
+
+    for (let i = 0; i < leafCount; i++) {
+        ctx.save();
+        ctx.translate(branchX, branchY);
+        let baseAngle = isLeft ? Math.PI : 0;
+        let randomAngle = (pseudoRandom * 0.4 - 0.2) + (i * 0.25 * dir); 
+        ctx.rotate(baseAngle + randomAngle);
+
+        let leafLength = 22 + (pseudoRandom * 8) - (i * 3);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(leafLength * 0.4, -4, leafLength * 0.8, -2, leafLength, 0);
+        ctx.bezierCurveTo(leafLength * 0.8, 2, leafLength * 0.4, 4, 0, 0);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
+function drawBambooSegment(x, y, width, height, isTopPipe, pipeSeed) {
+    ctx.fillStyle = "#27ae60";
+    ctx.fillRect(x, y, width, height);
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.fillRect(x, y, width * 0.2, height);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+    ctx.fillRect(x + width * 0.8, y, width * 0.2, height);
+
+    ctx.strokeStyle = "#1e6b39";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, width, height);
+
+    let segmentH = 55; 
+    let totalSegments = Math.ceil(height / segmentH);
+    
+    for (let i = 0; i <= totalSegments; i++) {
+        let lineY = isTopPipe ? (y + height - i * segmentH) : (y + i * segmentH);
+        
+        if (lineY >= y && lineY <= y + height) {
+            ctx.beginPath();
+            ctx.strokeStyle = "#144d28";
+            ctx.lineWidth = 3;
+            ctx.moveTo(x - 1, lineY);
+            ctx.lineTo(x + width + 1, lineY);
+            ctx.stroke();
+
+            if (lineY > 40 && lineY < canvas.height - 40) {
+                let segmentChoice = Math.sin(i * 45.32 + pipeSeed * 21.11);
+                segmentChoice = segmentChoice - Math.floor(segmentChoice);
+
+                if (segmentChoice < 0.35) {
+                    drawBambooLeaves(x, lineY, true, i, pipeSeed);   
+                } else if (segmentChoice < 0.70) {
+                    drawBambooLeaves(x + width, lineY, false, i, pipeSeed); 
+                }
+            }
+        }
+    }
+}
+
+function drawFireball(x, y, radius) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#ff4757";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 0.65, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffa502";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 0.35, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffff55";
+    ctx.fill();
+    ctx.restore();
+}
+
+function draw() {
+    ctx.fillStyle = "#70c5ce";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (!boss.active) {
+        pipes.forEach(p => {
+            drawBambooSegment(p.x, 0, pipeWidth, p.top, true, p.seed);
+            drawBambooSegment(p.x, p.bottom, pipeWidth, canvas.height - p.bottom, false, p.seed);
+
+            ctx.fillStyle = "#2ecc71";
+            ctx.strokeStyle = "#144d28";
+            ctx.lineWidth = 2.5;
+            ctx.fillRect(p.x - 3, p.top - 15, pipeWidth + 6, 15);
+            ctx.strokeRect(p.x - 3, p.top - 15, pipeWidth + 6, 15);
+            ctx.fillRect(p.x - 3, p.bottom, pipeWidth + 6, 15);
+            ctx.strokeRect(p.x - 3, p.bottom, pipeWidth + 6, 15);
+        });
+    }
+
+    if (boss.active) {
+        drawBambooSegment(boss.pipeX, boss.pipeTop, pipeWidth, canvas.height - boss.pipeTop, false, 0.92);
+        
+        ctx.fillStyle = "#2ecc71";
+        ctx.strokeStyle = "#144d28";
+        ctx.lineWidth = 2.5;
+        ctx.fillRect(boss.pipeX - 3, boss.pipeTop, pipeWidth + 6, 15);
+        ctx.strokeRect(boss.pipeX - 3, boss.pipeTop, pipeWidth + 6, 15);
+
+        if (bossImg.complete) {
+            ctx.drawImage(bossImg, boss.x, boss.y, boss.w, boss.h);
+        } else {
+            ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
+            ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
+        }
+    }
+
+    fireballs.forEach(f => {
+        drawFireball(f.x, f.y, f.r);
+    });
+
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    ctx.rotate(bird.rotation);
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.font = "11px 'Courier New'";
+    const codeLines = [
+        "< img", "src='https://bird'", "alt='Yellow Bird'", "class='w-full h-full'", "object-contain' >"
+    ];
+    
+    codeLines.forEach((line, index) => {
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillText(line, -59, index * 12 - 5);
+        ctx.fillStyle = "#fff";
+        ctx.fillText(line, -60, index * 12 - 6);
+    });
+
+    if (birdImg.complete) {
+        ctx.drawImage(birdImg, 0, 0, bird.w, bird.h);
+    } else {
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(0,0, bird.w, bird.h);
+    }
+    ctx.restore();
+
+    ctx.fillStyle = "white";
+    ctx.font = "bold 45px Arial";
+    ctx.textAlign = "center";
+    ctx.shadowColor = "black";
+    ctx.shadowBlur = 5;
+    ctx.fillText(score, canvas.width / 2, 80);
+    ctx.shadowBlur = 0;
+
+    if (!gameStarted) {
+        ctx.fillStyle = "white";
+        ctx.font = "18px Arial";
+        ctx.fillText("NHẤN ĐỂ BẮT ĐẦU CODE", canvas.width / 2, canvas.height / 2 + 100);
+    }
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "#ff5252";
+        ctx.font = "bold 30px Arial";
+        ctx.fillText("GÀ", canvas.width / 2, canvas.height / 2);
+        ctx.fillStyle = "white";
+        ctx.font = "16px Arial";
+        ctx.fillText("Nhấn để chơi lại", canvas.width / 2, canvas.height / 2 + 40);
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+init();
+loop();
+</script>
+</body>
+</html>
