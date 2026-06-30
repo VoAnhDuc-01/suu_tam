@@ -1,5 +1,4 @@
 <title> Saigyou Ayakashi - Sakura Falling </title>
-<!-- Chèn Google Font để có kiểu chữ nghệ thuật đẹp mắt -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
@@ -12,15 +11,13 @@
     background-size: cover; 
   }
   
-  /* Cấu hình đưa chữ lên GÓC TRÊN BÊN TRÁI */
   .character-name {
     position: absolute;
-    top: 30px;    /* Cách mép trên màn hình 30px */
-    left: 40px;   /* Cách lề trái màn hình 40px */
+    top: 30px;   
+    left: 40px;  
     font-family: 'Great Vibes', cursive; 
     font-size: 65px;
     color: #fff;
-    /* Hiệu ứng bóng đổ phát sáng màu hồng phớt hợp với hoa anh đào */
     text-shadow: 0 0 10px rgba(255, 192, 203, 0.8), 0 0 20px rgba(255, 182, 193, 0.5), 2px 2px 4px #000;
     z-index: 10;
     pointer-events: none;
@@ -29,7 +26,6 @@
 </style>
 <canvas id="canvas"></canvas>
 
-<!-- Chữ hiển thị ở góc trên bên trái -->
 <div class="character-name">Yuyuko Saigyouji</div>
 
 <script>
