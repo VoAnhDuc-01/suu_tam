@@ -28,10 +28,39 @@ const jump = -4.8;
 const pipeWidth = 30; 
 
 const birdImg = new Image();
-birdImg.src = 'https://preview.redd.it/walter-kaguya-v0-ol13bo9i64oc1.jpg?width=640&crop=smart&auto=webp&s=72d15ec3759cdf702b69b7714be6eed41b2c64a4';
+birdImg.src = 'https://files.catbox.moe/d53yns.png';
 
 const bossImg = new Image();
 bossImg.src = 'https://files.catbox.moe/1vchw7.png';
+
+const audioSrc = 'https://files.catbox.moe/q88ltt.mp3';
+
+const bgMusic = new Audio(audioSrc);
+bgMusic.loop = true;
+bgMusic.volume = 0.4; 
+
+function playJumpSound() {
+    const jumpSound = new Audio(audioSrc);
+    jumpSound.volume = 0.7;
+    jumpSound.currentTime = 0; 
+    jumpSound.play().catch(e => console.log("Chờ tương tác để phát thanh"));
+    
+    setTimeout(() => {
+        jumpSound.pause();
+    }, 150);
+}
+
+function playFireballSound() {
+    const fireSound = new Audio(audioSrc);
+    fireSound.volume = 0.6;
+    fireSound.currentTime = 0.5; 
+    fireSound.playbackRate = 1.5; 
+    fireSound.play().catch(e => console.log("Chờ tương tác để phát thanh"));
+
+    setTimeout(() => {
+        fireSound.pause();
+    }, 200);
+}
 
 function init() {
     bird = { x: 160, y: canvas.height / 2, w: 50, h: 50, v: 0, rotation: 0 };
@@ -53,21 +82,33 @@ function init() {
 }
 
 function action() {
-    if (gameOver) { init(); } 
-    else if (!gameStarted) { gameStarted = true; }
+    if (gameOver) { 
+        init(); 
+        bgMusic.play();
+    } else if (!gameStarted) { 
+        gameStarted = true; 
+        bgMusic.play().catch(e => console.log("Audio play blocked"));
+    }
+    
     bird.v = jump;
+    playJumpSound(); 
 }
 
 window.addEventListener("keydown", (e) => { if(e.code === "Space") action() });
 canvas.addEventListener("mousedown", action);
 
 function update() {
-    if (!gameStarted || gameOver) return;
+    if (!gameStarted || gameOver) {
+        if (gameOver) {
+            bgMusic.pause(); 
+        }
+        return;
+    }
     bird.v += gravity;
     bird.y += bird.v;
     bird.rotation = Math.min(Math.PI / 6, Math.max(-Math.PI / 10, bird.v / 15));
 
-    const BOSS_TRIGGER_SCORE = 3;
+    const BOSS_TRIGGER_SCORE = 99;
 
     if (score >= BOSS_TRIGGER_SCORE && !boss.active) {
         boss.active = true;
@@ -115,7 +156,7 @@ function update() {
             let diffY = targetY - startY;
             let distance = Math.sqrt(diffX * diffX + diffY * diffY);
             
-            let speed = 4.5;
+            let speed = 0.2;
             let vx = (diffX / distance) * speed;
             let vy = (diffY / distance) * speed;
 
@@ -126,6 +167,8 @@ function update() {
                 vx: vx, 
                 vy: vy  
             });
+            
+            playFireballSound(); 
         }
     }
 
@@ -296,6 +339,7 @@ function draw() {
 
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
     ctx.font = "11px 'Courier New'";
+    
     const codeLines = [
         "< img", "src='https://bird'", "alt='Yellow Bird'", "class='w-full h-full'", "object-contain' >"
     ];
@@ -326,14 +370,14 @@ function draw() {
     if (!gameStarted) {
         ctx.fillStyle = "white";
         ctx.font = "18px Arial";
-        ctx.fillText("NHẤN ĐỂ BẮT ĐẦU CODE", canvas.width / 2, canvas.height / 2 + 100);
+        ctx.fillText("NHẤN ĐỂ BẮT ĐẦU CHƠI", canvas.width / 2, canvas.height / 2 + 100);
     }
     if (gameOver) {
         ctx.fillStyle = "rgba(0,0,0,0.6)";
         ctx.fillRect(0,0,canvas.width, canvas.height);
         ctx.fillStyle = "#ff5252";
         ctx.font = "bold 30px Arial";
-        ctx.fillText("GÀ", canvas.width / 2, canvas.height / 2);
+        ctx.fillText("BẠN LÀ NHẤT", canvas.width / 2, canvas.height / 2);
         ctx.fillStyle = "white";
         ctx.font = "16px Arial";
         ctx.fillText("Nhấn để chơi lại", canvas.width / 2, canvas.height / 2 + 40);
